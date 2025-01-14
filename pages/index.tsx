@@ -46,7 +46,6 @@ export default function Home() {
 
     doc.setLineWidth(0.5);
     doc.line(10, 70, 200, 70);
-    doc.setFontSize(12);
     doc.text("Item", 10, 75);
     doc.text("Price", 160, 75);
     doc.line(10, 78, 200, 78);
