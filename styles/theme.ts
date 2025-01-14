@@ -2,13 +2,10 @@ import { createTheme, responsiveFontSizes } from "@mui/material/styles";
 
 var theme = createTheme({
   palette: {
+    background: { default: "#f97315" },
     primary: {
       main: "#f97315",
-      // light: "#3c4e6b",
     },
-    // secondary: {
-    //   main: "#446A79",
-    // },
   },
   typography: {
     fontFamily: [

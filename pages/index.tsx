@@ -1,8 +1,9 @@
 import {
   Alert,
+  Box,
   Button,
-  Container,
   Grid2,
+  Paper,
   TextField,
   Typography,
 } from "@mui/material";
@@ -20,65 +21,71 @@ export default function Home() {
 
   const handleDownloadPDF = (
     listingTitle: string,
-    description: string,
-    sellingPrice: number
+    sellingPrice: number,
+    itemBrand?: string,
+    itemYear?: number,
+    itemMileage?: number
   ) => {
+    const vehiclePriceFormatted = numeral(sellingPrice).format("$0,0.00");
     const doc = new jsPDF();
 
     doc.setFontSize(20);
     doc.text("Invoice", 105, 20, { align: "center" });
 
     doc.setFontSize(12);
-    doc.text(`Date: ${moment().format("MM/DD/YYYY")}`, 10, 40); // List today's date
-    // Add a Line
+    doc.text(`Date: ${moment().format("MM/DD/YYYY")}`, 10, 40);
+    if (itemBrand) {
+      doc.text(`Item Brand: ${itemBrand}`, 10, 47);
+    }
+    if (itemYear) {
+      doc.text(`Year: ${itemYear}`, 10, 53);
+    }
+    if (itemMileage) {
+      doc.text(`Mileage: ${itemMileage.toLocaleString()}`, 10, 60);
+    }
+
     doc.setLineWidth(0.5);
-    doc.line(10, 60, 200, 60);
-
-    // Table Headers
+    doc.line(10, 70, 200, 70);
     doc.setFontSize(12);
-    doc.text("Item", 10, 70);
-    doc.text("Price", 160, 70);
+    doc.text("Item", 10, 75);
+    doc.text("Price", 160, 75);
+    doc.line(10, 78, 200, 78);
+    doc.text(listingTitle, 10, 85);
+    doc.text(vehiclePriceFormatted, 160, 85);
 
-    // Add a Line
-    doc.line(10, 75, 200, 75);
+    doc.setFontSize(14);
+    doc.text(`Total: ${vehiclePriceFormatted}`, 160, 115);
 
-    let currentY = 85;
-    doc.text(listingTitle, 10, currentY);
-    doc.text(numeral(sellingPrice).format("$0,0.00"), 160, currentY);
-    currentY += 10;
-
-    doc.text("Purchase Details:", 10, currentY);
-    doc.text(description, 10, currentY + 5); // Think this is not worth it
-    // Download PDF
     doc.save("invoice.pdf");
   };
 
   const handleClick = () => {
     if (listingUrl) {
       const splitUrl = listingUrl.split("listing/");
+      // Ensure Garage Listing URL was given
       if (
         splitUrl.length == 2 &&
         splitUrl[0] === "https://www.withgarage.com/"
       ) {
         axios
           .post("https://garage-backend.onrender.com/getListing", {
-            id: splitUrl[1].slice(-36), // UUID will be last 36 characters of URL
+            id: splitUrl[1].slice(-36), // UUID will be last 36 characters of valid URL
           })
           .then((response) => {
-            console.log(response);
             if (
               response.data &&
               response.data.result &&
               response.data.result.listing
             ) {
               const listingInfo = response.data.result.listing;
-              //item weight, item age
               handleDownloadPDF(
                 listingInfo.listingTitle,
-                listingInfo.listingDescription,
-                listingInfo.sellingPrice
+                listingInfo.sellingPrice,
+                listingInfo.itemBrand,
+                listingInfo.itemAge,
+                listingInfo.mileage
               );
-              setError("");
+              setError(undefined);
             } else {
               setError("Listing not found. Please contact Garage");
             }
@@ -94,50 +101,77 @@ export default function Home() {
   };
 
   return (
-    <Container sx={{ backgroundColor: "white", py: 2, px: 30 }}>
-      <Image
-        src={"/GarageLogo.png"}
-        alt="legend"
-        height={0}
-        width={0}
-        sizes="25vw"
-        style={{ width: "auto", height: "auto" }}
-      />
-      <Grid2 container spacing={2} direction="column">
-        <Grid2>
-          <Typography variant="h5">
-            Enter the URL of a listing on Garage to generate a PDF invoice.
-          </Typography>
-        </Grid2>
-        <Grid2>
-          <TextField
-            id="listingUrl"
-            value={listingUrl}
-            onChange={(event) => setListingUrl(event.target.value)}
-            label="Listing URL"
-            fullWidth
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+      }}
+    >
+      <Paper
+        elevation={20}
+        sx={{
+          p: 4,
+          width: "100%",
+          maxWidth: 1000,
+          textAlign: "center",
+          borderRadius: 4,
+          overflow: "scroll",
+        }}
+      >
+        <Box display="flex" justifyContent="center" mb={3}>
+          <Image
+            src="/GarageLogo.png"
+            alt="Garage Logo"
+            height={0}
+            width={0}
+            sizes="30vw"
+            style={{ width: "auto", height: "auto" }}
           />
+        </Box>
+        <Typography variant="h3" gutterBottom>
+          Welcome to Garage
+        </Typography>
+        <Typography variant="subtitle1" color="textSecondary" gutterBottom>
+          Enter the URL of a listing on Garage to generate a PDF invoice.
+        </Typography>
+        <Grid2 container spacing={2} sx={{ my: 4 }} direction="column">
+          <Grid2>
+            <TextField
+              required
+              id="listingUrl"
+              value={listingUrl}
+              onChange={(event) => {
+                if (error) {
+                  setError(undefined);
+                }
+                setListingUrl(event.target.value);
+              }}
+              label="Listing URL"
+              fullWidth
+            />
+          </Grid2>
+          <Grid2>
+            <Button
+              disabled={!listingUrl}
+              onClick={handleClick}
+              variant="contained"
+              color="primary"
+              size="large"
+              fullWidth
+              sx={{ textTransform: "none" }}
+            >
+              Request PDF Invoice
+            </Button>
+          </Grid2>
         </Grid2>
-        <Grid2>
-          <Button
-            disabled={listingUrl === ""}
-            onClick={handleClick}
-            variant="contained"
-            color="primary"
-            fullWidth
-          >
-            Request PDF Invoice
-          </Button>
-        </Grid2>
-      </Grid2>
-      <br />
-      {error && (
-        <Alert icon={<ErrorOutlineIcon fontSize="inherit" />} severity="error">
-          {error}
-        </Alert>
-      )}
-    </Container>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }} icon={<ErrorOutlineIcon />}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+    </Box>
   );
 }
-
-// export default Home;
